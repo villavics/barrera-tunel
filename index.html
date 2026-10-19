@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Laboratorio de Tunelaje</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: encabezado + identificación arriba; laboratorio en dos columnas (simulador fijo a la izquierda, casos a la derecha); reporte editable al final. */
+:root {
+  --bg: #FAF9F5;
+  --surface: #FFFFFF;
+  --ink: #141413;
+  --text: #3D3D3A;
+  --muted: #87867F;
+  --line: #D1CFC5;
+  --soft: #F0EEE6;
+  --oat: #E3DACC;
+  --clay: #D97757;
+  --olive: #788C5D;
+  --sky: #6A8CAF;
+  --bad: #B04A3F;
+  --clay-tint: rgba(217,119,87,0.10);
+  --serif: ui-serif, Georgia, "Times New Roman", serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1B1A18; --surface: #24231F; --ink: #F3F1EA; --text: #D5D2C8; --muted: #9A978D;
+    --line: #3F3D37; --soft: #2D2B27; --oat: #3B3832; --clay: #E28C6D; --olive: #9DB27F;
+    --sky: #8FB0D2; --bad: #DB7B6E; --clay-tint: rgba(226,140,109,0.14); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1B1A18; --surface: #24231F; --ink: #F3F1EA; --text: #D5D2C8; --muted: #9A978D;
+  --line: #3F3D37; --soft: #2D2B27; --oat: #3B3832; --clay: #E28C6D; --olive: #9DB27F;
+  --sky: #8FB0D2; --bad: #DB7B6E; --clay-tint: rgba(226,140,109,0.14); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--sans); font-size: 15px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  padding-block: 44px 120px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1240px; margin: 0 auto; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+h1 { font-family: var(--serif); font-weight: 500; font-size: 34px; line-height: 1.15; color: var(--ink); letter-spacing: -0.01em; margin: 0 0 12px; text-wrap: balance; }
+h2 { font-family: var(--serif); font-weight: 500; font-size: 23px; color: var(--ink); margin: 0 0 10px; text-wrap: balance; }
+h3 { font-family: var(--serif); font-weight: 500; font-size: 18px; color: var(--ink); margin: 0 0 6px; }
+p { margin: 0 0 12px; max-width: 70ch; }
+.lead { max-width: 68ch; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+a { color: var(--clay); }
+.label { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.panel { border: 1.5px solid var(--line); border-radius: 14px; background: var(--surface); padding: 22px; }
+section.block { margin-top: 36px; }
+
+/* identificación */
+.idgrid { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr) minmax(0,1fr); gap: 16px; align-items: end; }
+@media (max-width: 760px) { .idgrid { grid-template-columns: 1fr; } }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field label { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0.04em; }
+input[type=text], input[type=number], select, textarea {
+  font: inherit; color: var(--ink); background: var(--bg);
+  border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%;
+}
+textarea { min-height: 84px; resize: vertical; line-height: 1.5; font-size: 14px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
+.hint { font-size: 12.5px; color: var(--muted); }
+.persona { font-family: var(--mono); font-size: 12px; color: var(--ink); background: var(--soft); border-radius: 8px; padding: 9px 12px; }
+
+/* teoría */
+details.theory { margin-top: 18px; }
+details.theory summary { cursor: pointer; font-family: var(--serif); font-size: 19px; color: var(--ink); list-style: none; display: flex; align-items: center; gap: 10px; }
+details.theory summary::-webkit-details-marker { display: none; }
+details.theory summary::before { content: "+"; font-family: var(--mono); font-size: 14px; width: 22px; height: 22px; border: 1.5px solid var(--line); border-radius: 6px; display: inline-grid; place-items: center; color: var(--muted); }
+details.theory[open] summary::before { content: "−"; }
+.theory-grid { display: grid; grid-template-columns: 340px minmax(0,1fr); gap: 28px; margin-top: 18px; align-items: start; }
+@media (max-width: 860px) { .theory-grid { grid-template-columns: 1fr; } }
+.math { overflow-x: auto; min-width: 0; }
+.math p { max-width: none; }
+svg.barrier { width: 100%; max-width: 340px; display: block; }
+.barrier .ax { stroke: var(--muted); stroke-width: 1.2; fill: none; }
+.barrier .wall { fill: var(--oat); stroke: var(--clay); stroke-width: 1.8; }
+.barrier .eline { stroke: var(--sky); stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+.barrier .arr { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+.barrier .arrhead { fill: var(--ink); }
+.barrier text { font-family: var(--mono); font-size: 11px; fill: var(--text); }
+.barrier text.reg { fill: var(--muted); font-size: 10px; }
+
+/* laboratorio */
+.lab { display: grid; grid-template-columns: minmax(0,1.22fr) minmax(0,1fr); gap: 28px; align-items: start; margin-top: 16px; }
+@media (max-width: 1000px) { .lab { grid-template-columns: 1fr; } }
+.sim { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow-y: auto; padding: 18px; }
+@media (max-width: 1000px) { .sim { position: static; max-height: none; } }
+.plothead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: middle; background: var(--c); }
+.legend span.dash::before { background: repeating-linear-gradient(90deg, var(--c) 0 4px, transparent 4px 7px); }
+canvas.plot { display: block; width: 100%; height: 210px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); }
+.plotwrap + .plotwrap { margin-top: 14px; }
+.controls { margin-top: 14px; display: grid; gap: 10px; }
+.ctl { display: grid; grid-template-columns: 54px minmax(0,1fr) 84px; gap: 12px; align-items: center; }
+.ctl label { font-family: var(--mono); font-size: 12px; color: var(--ink); }
+.ctl input[type=range] { width: 100%; accent-color: var(--clay); }
+.ctl input[type=number] { padding: 5px 8px; font-family: var(--mono); font-size: 12.5px; }
+.opts { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; font-size: 13px; margin-top: 4px; }
+.opts select { width: auto; padding: 5px 8px; font-size: 13px; }
+.opts input[type=number] { width: 76px; padding: 5px 8px; font-family: var(--mono); font-size: 12.5px; }
+.opts label { display: inline-flex; align-items: center; gap: 6px; }
+.readout { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px 14px; font-variant-numeric: tabular-nums; }
+@media (max-width: 480px) { .readout { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+.ro .k { font-family: var(--mono); font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.ro .v { font-family: var(--mono); font-size: 15px; color: var(--ink); }
+.ro.big .v { font-size: 19px; }
+.ro.t .v { color: var(--clay); }
+.ro.r .v { color: var(--sky); }
+.chip { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 3px 9px; border-radius: 999px; background: var(--soft); color: var(--ink); border: 1px solid var(--line); }
+.chip.tunnel { background: var(--clay-tint); border-color: var(--clay); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; }
+button {
+  appearance: none; font-family: var(--mono); font-size: 12px; color: var(--ink);
+  border: 1.5px solid var(--line); background: var(--soft); border-radius: 7px;
+  padding: 7px 12px; cursor: pointer; line-height: 1.3;
+}
+button:hover { background: var(--oat); }
+button.primary { background: var(--clay); border-color: var(--clay); color: #fff; }
+button.primary:hover { filter: brightness(1.06); background: var(--clay); }
+button.ghost { background: transparent; }
+button.small { padding: 3px 8px; font-size: 11px; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.attach { font-size: 12.5px; color: var(--muted); }
+
+/* casos */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.tab { position: relative; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tab .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-left: 6px; background: var(--line); vertical-align: middle; }
+.tab .dot.part { background: var(--clay); }
+.tab .dot.done { background: var(--olive); }
+.case { display: grid; gap: 14px; }
+.case .goal { color: var(--text); }
+.preset { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.preset .mono { color: var(--muted); }
+ol.qs { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; counter-reset: q; }
+ol.qs li { counter-increment: q; display: grid; gap: 7px; }
+ol.qs li .qt { color: var(--ink); font-size: 14.5px; }
+ol.qs li .qt::before { content: "P" counter(q) ". "; font-family: var(--mono); font-size: 12px; color: var(--clay); }
+.sub { border-top: 1px solid var(--line); padding-top: 12px; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 500; }
+td.num { font-family: var(--mono); font-size: 12.5px; }
+.empty { font-size: 13px; color: var(--muted); font-style: italic; }
+.thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.thumbs img { width: 100%; border-radius: 8px; border: 1px solid var(--line); display: block; }
+
+/* reporte */
+.report { margin-top: 44px; }
+.report-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.status-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.doc { max-width: 900px; display: grid; gap: 26px; }
+.doc .rcase { display: grid; gap: 12px; border-top: 1.5px solid var(--line); padding-top: 18px; }
+.doc .rq { display: grid; gap: 6px; }
+.doc .rq .qt { font-size: 14px; color: var(--ink); }
+.cap { display: grid; grid-template-columns: 220px minmax(0,1fr); gap: 14px; align-items: start; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+@media (max-width: 640px) { .cap { grid-template-columns: 1fr; } }
+.cap img { width: 100%; border-radius: 6px; display: block; border: 1px solid var(--line); }
+.cap .capctl { display: grid; gap: 8px; min-width: 0; }
+.cap .capbtns { display: flex; gap: 6px; flex-wrap: wrap; }
+.cap textarea { min-height: 54px; }
+.genbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 8px; }
+.msg { font-size: 13px; }
+.msg.err { color: var(--bad); }
+.msg.ok { color: var(--olive); }
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  background: var(--ink); color: var(--bg); border-radius: 10px; padding: 10px 14px;
+  font-size: 13px; display: flex; gap: 12px; align-items: center; z-index: 20; max-width: calc(100% - 32px);
+}
+.toast button { background: transparent; color: var(--bg); border-color: var(--muted); }
+footer { margin-top: 48px; font-size: 12px; color: var(--muted); max-width: 900px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Mecánica Cuántica · Actividad de laboratorio virtual · UABC Facultad de Ciencias</div>
+    <h1>Barrera de potencial rectangular: transmisión, reflexión y tunelaje</h1>
+    <p class="lead">Una partícula de energía <em>E</em> incide desde la izquierda sobre una barrera de altura <em>V</em><sub>0</sub> que ocupa la región 0 ≤ <em>x</em> ≤ <em>L</em>. Usa el simulador para medir los coeficientes de transmisión <em>T</em> y de reflexión <em>R</em>, resuelve los cinco casos, adjunta capturas a tu reporte y descarga el PDF. Trabajamos en unidades con ħ = m = 1.</p>
+  </header>
+
+  <section class="block panel" aria-labelledby="idtitle">
+    <h2 id="idtitle">Identificación</h2>
+    <div class="idgrid">
+      <div class="field">
+        <label for="nombre">Nombre completo</label>
+        <input id="nombre" type="text" autocomplete="name" placeholder="Apellidos, Nombre(s)">
+      </div>
+      <div class="field">
+        <label for="numero">Número de empleado</label>
+        <input id="numero" type="text" inputmode="numeric" placeholder="p. ej. 012345">
+      </div>
+      <div class="field">
+        <label>Tu barrera personal (caso 5)</label>
+        <div class="persona" id="persona">Escribe tu número para generarla</div>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:12px">Tu avance se guarda en este navegador mientras trabajas. Si cambias de equipo, empieza de nuevo y descarga el PDF al terminar.</p>
+
+    <details class="theory" id="theory">
+      <summary>Modelo y fórmulas</summary>
+      <div class="theory-grid">
+        <svg class="barrier" viewBox="0 0 340 210" role="img" aria-label="Barrera rectangular de altura V0 entre x igual a 0 y x igual a L, con onda incidente, reflejada y transmitida">
+          <line class="ax" x1="14" y1="170" x2="330" y2="170"/>
+          <line class="ax" x1="24" y1="190" x2="24" y2="16"/>
+          <rect class="wall" x="140" y="62" width="80" height="108"/>
+          <line class="eline" x1="24" y1="112" x2="330" y2="112"/>
+          <text x="306" y="105">E</text>
+          <text x="225" y="74">V₀</text>
+          <text x="136" y="186">0</text>
+          <text x="216" y="186">L</text>
+          <text x="318" y="186">x</text>
+          <text class="reg" x="62" y="160">I</text>
+          <text class="reg" x="176" y="160">II</text>
+          <text class="reg" x="272" y="160">III</text>
+          <path class="arr" d="M42 92 L112 92"/><path class="arrhead" d="M112 88 L120 92 L112 96 Z"/>
+          <text x="46" y="84">e^{ikx}</text>
+          <path class="arr" d="M120 132 L50 132"/><path class="arrhead" d="M50 128 L42 132 L50 136 Z"/>
+          <text x="54" y="148">r e^{−ikx}</text>
+          <path class="arr" d="M240 92 L304 92"/><path class="arrhead" d="M304 88 L312 92 L304 96 Z"/>
+          <text x="244" y="84">t e^{ikx}</text>
+        </svg>
+        <div class="math">
+          <p>Potencial y número de onda fuera de la barrera:</p>
+          <p>\[ V(x)=\begin{cases}0, & x<0\\ V_0, & 0\le x\le L\\ 0, & x>L\end{cases}\qquad k=\sqrt{2E}. \]</p>
+          <p>Solución por regiones, con \(q=\sqrt{2(E-V_0)}\):</p>
+          <p>\[ \psi(x)=\begin{cases} e^{ikx}+r\,e^{-ikx}, & x<0\\ C\,e^{iqx}+D\,e^{-iqx}, & 0\le x\le L\\ t\,e^{ikx}, & x>L\end{cases}\qquad T=|t|^2,\quad R=|r|^2,\quad T+R=1. \]</p>
+          <p>Imponer continuidad de \(\psi\) y \(\psi'\) en \(x=0\) y \(x=L\) da:</p>
+          <p>\[ E<V_0:\ \ T=\left[1+\frac{V_0^2\sinh^2(\kappa L)}{4E(V_0-E)}\right]^{-1},\qquad \kappa=\sqrt{2(V_0-E)}, \]</p>
+          <p>\[ E>V_0:\ \ T=\left[1+\frac{V_0^2\sin^2(qL)}{4E(E-V_0)}\right]^{-1},\qquad E=V_0:\ \ T=\left[1+\frac{V_0L^2}{2}\right]^{-1}. \]</p>
+          <p>Para una barrera gruesa (\(\kappa L\gg 1\)): \(\;T\approx 16\,\dfrac{E}{V_0}\left(1-\dfrac{E}{V_0}\right)e^{-2\kappa L}.\)</p>
+          <p class="hint">Unidades: con ħ = m = 1 y una longitud de referencia <em>a</em>, la energía se mide en ħ²/(m a²). Si tomas <em>a</em> = 1 Å y la masa del electrón, la unidad de energía es ≈ 7.62 eV.</p>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section class="block" aria-labelledby="labtitle">
+    <h2 id="labtitle">Laboratorio</h2>
+    <div class="lab">
+      <div class="sim panel" id="sim">
+        <div class="plotwrap">
+          <div class="plothead">
+            <span class="label">Potencial y función de onda ψ(x)</span>
+            <span class="legend"><span style="--c:var(--clay)">V(x)</span><span class="dash" style="--c:var(--muted)">E</span><span style="--c:var(--sky)">|ψ|²</span><span style="--c:var(--olive)">Re ψ</span></span>
+          </div>
+          <canvas class="plot" id="cv-wave" aria-label="Gráfica del potencial y de la función de onda"></canvas>
+        </div>
+        <div class="plotwrap">
+          <div class="plothead">
+            <span class="label" id="curve-title">Transmisión como función de E</span>
+            <span class="legend"><span style="--c:var(--clay)">T</span><span class="dash" style="--c:var(--sky)">R</span><span style="--c:var(--ink)">punto actual</span></span>
+          </div>
+          <canvas class="plot" id="cv-curve" aria-label="Gráfica de T y R contra la variable elegida"></canvas>
+        </div>
+
+        <div class="controls">
+          <div class="ctl"><label for="rE">E</label><input id="rE" type="range" min="0.01" max="25" step="0.01"><input id="nE" type="number" min="0.01" max="25" step="0.001"></div>
+          <div class="ctl"><label for="rV">V₀</label><input id="rV" type="range" min="-10" max="20" step="0.01"><input id="nV" type="number" min="-10" max="20" step="0.001"></div>
+          <div class="ctl"><label for="rL">L</label><input id="rL" type="range" min="0.05" max="5" step="0.01"><input id="nL" type="number" min="0.05" max="5" step="0.001"></div>
+          <div class="opts">
+            <label>Graficar T contra
+              <select id="mode"><option value="E">E</option><option value="L">L</option><option value="V0">V₀</option></select>
+            </label>
+            <label>de <input id="xmin" type="number" step="0.1"></label>
+            <label>a <input id="xmax" type="number" step="0.1"></label>
+            <label><input id="logy" type="checkbox"> escala log en T</label>
+          </div>
+          <div class="opts">
+            <label><input id="shPsi2" type="checkbox" checked> |ψ|²</label>
+            <label><input id="shRe" type="checkbox" checked> Re ψ</label>
+            <button class="small ghost" id="anim" type="button">Animar fase</button>
+          </div>
+        </div>
+
+        <div class="readout" id="readout"></div>
+
+        <div class="actions">
+          <button class="primary" id="btnCap" type="button">Capturar pantalla</button>
+          <button id="btnPt" type="button">Registrar punto</button>
+          <span class="attach">se adjunta al <b id="attachTo">caso 1</b></span>
+        </div>
+      </div>
+
+      <div class="cases panel">
+        <div class="tabs" role="tablist" id="tabs"></div>
+        <div id="casePanel"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="report" id="reporte" aria-labelledby="reptitle">
+    <div class="report-head">
+      <div>
+        <div class="eyebrow">Reporte</div>
+        <h2 id="reptitle">Revisa, corrige y descarga</h2>
+        <p class="hint" style="margin:0">Todo lo que escribes aquí y en los casos es lo mismo: puedes editar respuestas, reordenar o quitar capturas y agregar notas hasta que generes el PDF. Puedes generarlo las veces que quieras.</p>
+      </div>
+      <div class="status-list" id="statusList"></div>
+    </div>
+    <div class="doc panel" id="doc"></div>
+  </section>
+
+  <footer>Simulación analítica exacta de la barrera rectangular unidimensional (ħ = m = 1). Los coeficientes se calculan con las expresiones cerradas de T y con empalme de ψ y ψ′ en x = 0 y x = L.</footer>
+</div>
+
+<script>
+window.MathJax = { tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] }, svg: { fontCache: "global" }, startup: { typeset: true } };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js" async></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function () {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const KEY = "barrera-tunel-v1", KEYCAP = "barrera-tunel-v1-caps";
+
+/* ── física (ħ = m = 1) ───────────────────────────── */
+const Cx = (re, im = 0) => ({ re, im });
+const add = (a, b) => Cx(a.re + b.re, a.im + b.im), sub = (a, b) => Cx(a.re - b.re, a.im - b.im);
+const mul = (a, b) => Cx(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+const div = (a, b) => { const d = b.re * b.re + b.im * b.im; return Cx((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); };
+const expi = z => { const m = Math.exp(-z.im); return Cx(m * Math.cos(z.re), m * Math.sin(z.re)); };
+const sc = (a, s) => Cx(a.re * s, a.im * s);
+const ab2 = a => a.re * a.re + a.im * a.im;
+
+function Tof(E, V0, L) {
+  if (E <= 0) return 0;
+  const d = E - V0;
+  if (Math.abs(d) < 1e-9) return 1 / (1 + V0 * L * L / 2);
+  if (d < 0) { const ka = Math.sqrt(-2 * d), s = Math.sinh(ka * L); return 1 / (1 + V0 * V0 * s * s / (4 * E * (-d))); }
+  const q = Math.sqrt(2 * d), s = Math.sin(q * L);
+  return 1 / (1 + V0 * V0 * s * s / (4 * E * d));
+}
+function coeffs(E, V0, L) {
+  const k = Cx(Math.sqrt(2 * E));
+  let d = E - V0; if (Math.abs(d) < 1e-6) d = 1e-6;
+  const q = d > 0 ? Cx(Math.sqrt(2 * d)) : Cx(0, Math.sqrt(-2 * d));
+  const qpk = add(q, k), qmk = sub(q, k);
+  const den = sub(mul(mul(qpk, qpk), expi(sc(q, -L))), mul(mul(qmk, qmk), expi(sc(q, L))));
+  const t = div(sc(mul(mul(q, k), expi(sc(k, -L))), 4), den);
+  const tk = mul(t, expi(sc(k, L)));
+  const C = mul(mul(tk, expi(sc(q, -L))), div(qpk, sc(q, 2)));
+  const D = mul(mul(tk, expi(sc(q, L))), div(qmk, sc(q, 2)));
+  const r = sub(add(C, D), Cx(1));
+  return { k, q, t, r, C, D };
+}
+function psiAt(x, c, L) {
+  if (x < 0) return add(expi(sc(c.k, x)), mul(c.r, expi(sc(c.k, -x))));
+  if (x <= L) return add(mul(c.C, expi(sc(c.q, x))), mul(c.D, expi(sc(c.q, -x))));
+  return mul(c.t, expi(sc(c.k, x)));
+}
+
+/* ── casos ────────────────────────────────────────── */
+function personal(numero) {
+  const dg = String(numero || "").replace(/\D/g, "");
+  if (!dg) return null;
+  const d1 = +dg[dg.length - 1], d2 = dg.length > 1 ? +dg[dg.length - 2] : 0;
+  const V0 = 3 + (d1 % 5), L = +(0.6 + 0.2 * (d2 % 6)).toFixed(2), E0 = +(0.4 * V0).toFixed(2);
+  return { V0, L, E0 };
+}
+const CASES = [
+  { id: 1, short: "Túnel", title: "Tunelaje por debajo de la barrera",
+    goal: "Explorar cómo una partícula con E < V₀ atraviesa una región prohibida clásicamente.",
+    preset: () => ({ E: 2.5, V0: 5, L: 1, mode: "E", xmin: 0, xmax: 10, log: false }),
+    qs: [
+      "Con E = 2.5, V₀ = 5 y L = 1, registra T y R (botón «Registrar punto»). ¿Se cumple T + R = 1? ¿Qué ley de conservación expresa esta igualdad?",
+      "¿Qué valor de T predice la mecánica clásica para E < V₀? Explica con tus palabras por qué el resultado cuántico es distinto.",
+      "Calcula a mano κ = √(2(V₀ − E)), κL y T con la fórmula exacta. Compara con la lectura del simulador.",
+      "Compara la T exacta con la aproximación de barrera gruesa T ≈ 16(E/V₀)(1 − E/V₀)e^(−2κL). ¿Qué tan buena es aquí? Repite con L = 0.3 y explica la diferencia."
+    ] },
+  { id: 2, short: "Anchura L", title: "Dependencia con la anchura de la barrera",
+    goal: "Medir cómo decae la transmisión al aumentar L y extraer κ de una gráfica semilogarítmica.",
+    preset: () => ({ E: 2, V0: 5, L: 1, mode: "L", xmin: 0, xmax: 5, log: true }),
+    qs: [
+      "Observa T(L) en escala logarítmica. ¿Qué forma tiene la curva para L ≳ 1? ¿Qué ocurre cerca de L = 0?",
+      "Registra T para L = 1, 2, 3 y 4. Calcula la pendiente de ln T contra L y compárala con −2κ. ¿Cuánto vale κ en este caso?",
+      "¿Por qué factor disminuye T al pasar de L = 1 a L = 2? Compáralo con e^(2κ).",
+      "En un microscopio de efecto túnel (STM) la corriente depende de la distancia punta–muestra. Con base en tus resultados, explica por qué el STM resuelve cambios de distancia de fracciones de ångström."
+    ] },
+  { id: 3, short: "Resonancias", title: "Por encima de la barrera: resonancias de transmisión",
+    goal: "Mostrar que con E > V₀ todavía hay reflexión y que T = 1 solo en energías discretas.",
+    preset: () => ({ E: 7, V0: 5, L: 2, mode: "E", xmin: 0, xmax: 25, log: false }),
+    qs: [
+      "Clásicamente la partícula pasa siempre si E > V₀. ¿Es T = 1 para toda E > V₀? Describe la curva T(E).",
+      "Con el control de E, localiza las tres primeras energías por encima de V₀ donde T = 1 (al menos tres cifras). Registra cada punto.",
+      "Compara tus valores con la condición qL = nπ, es decir Eₙ = V₀ + n²π²/(2L²). Calcula el error relativo de cada uno.",
+      "Interpreta qL = nπ en términos de la longitud de onda dentro de la barrera, λ = 2π/q. ¿Qué analogía óptica encuentras?",
+      "Observa |ψ|² en una resonancia y fuera de ella. ¿Qué cambia en la región x < 0 y por qué? Adjunta una captura de cada situación."
+    ] },
+  { id: 4, short: "Altura V₀", title: "Dependencia con la altura y el pozo de potencial",
+    goal: "Estudiar T como función de V₀, incluido el caso E = V₀ y el pozo (V₀ < 0).",
+    preset: () => ({ E: 3, V0: 5, L: 1, mode: "V0", xmin: -10, xmax: 20, log: false }),
+    qs: [
+      "Con E = 3 y L = 1, encuentra el valor de V₀ para el cual T = 0.5. Registra el punto.",
+      "Coloca V₀ = E = 3 y verifica T = [1 + V₀L²/2]⁻¹. ¿Por qué hace falta una expresión especial cuando E = V₀?",
+      "Para V₀ < 0 el potencial es un pozo. ¿Hay reflexión aunque clásicamente no la habría? Encuentra un V₀ < 0 con T = 1 (efecto Ramsauer–Townsend) y justifícalo con qL = nπ.",
+      "¿Por qué T(V₀) no es monótona en la región V₀ < E? Relaciónalo con el caso 3."
+    ] },
+  { id: 5, short: "Tu barrera", title: "Tu barrera personal",
+    goal: "Aplicar todo lo anterior a una barrera generada a partir de tu número de empleado.",
+    preset: () => { const p = personal(state.numero); return p ? { E: p.E0, V0: p.V0, L: p.L, mode: "E", xmin: 0, xmax: Math.ceil(p.V0 + 3 * Math.PI * Math.PI / (2 * p.L * p.L) + 2), log: false } : null; },
+    qs: [
+      "Con tu barrera (V₀, L) y E = E₀, calcula T a mano con la fórmula exacta. Muestra κ, κL y sinh(κL), y compara con el simulador.",
+      "Calcula la primera energía de resonancia E₁ = V₀ + π²/(2L²) y verifícala en el simulador. Registra el punto.",
+      "Encuentra la energía E < V₀ para la cual T = 0.05 (tres cifras). Registra el punto y adjunta una captura de T(E)."
+    ] }
+];
+const totalQs = CASES.reduce((a, c) => a + c.qs.length, 0);
+
+/* ── estado ───────────────────────────────────────── */
+const sim = { E: 2.5, V0: 5, L: 1, mode: "E", xmin: 0, xmax: 10, log: false, psi2: true, re: true, phase: 0, anim: false };
+const state = { nombre: "", numero: "", active: 1, ans: {}, notes: {}, concl: "", pts: { 1: [], 2: [], 3: [], 4: [], 5: [] } };
+let caps = [];
+let capWarned = false;
+
+function load() {
+  try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s) Object.assign(state, s, { pts: Object.assign({ 1: [], 2: [], 3: [], 4: [], 5: [] }, s.pts || {}) }); } catch (e) {}
+  try { const c = JSON.parse(localStorage.getItem(KEYCAP) || "null"); if (Array.isArray(c)) caps = c; } catch (e) {}
+}
+let saveT = null;
+function save() {
+  clearTimeout(saveT);
+  saveT = setTimeout(() => {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }, 300);
+}
+function saveCaps() {
+  try { localStorage.setItem(KEYCAP, JSON.stringify(caps)); }
+  catch (e) { if (!capWarned) { capWarned = true; toast("Las capturas no caben en el almacenamiento del navegador: no se perderán mientras no recargues la página. Descarga el PDF antes de cerrar."); } }
+}
+
+/* ── formato ──────────────────────────────────────── */
+function fmt(v, n = 4) {
+  if (!isFinite(v)) return "—";
+  const a = Math.abs(v);
+  if (a !== 0 && (a < 1e-3 || a >= 1e5)) return v.toExponential(3).replace("e", "×10^").replace("^+", "^");
+  return (+v.toFixed(n)).toString();
+}
+function fmtT(v) { return v < 1e-3 ? v.toExponential(4) : v.toFixed(6); }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+/* ── canvas ───────────────────────────────────────── */
+function palette() {
+  const cs = getComputedStyle(document.documentElement);
+  const g = n => cs.getPropertyValue(n).trim();
+  return { bg: g("--bg"), ink: g("--ink"), text: g("--text"), muted: g("--muted"), line: g("--line"), clay: g("--clay"), sky: g("--sky"), olive: g("--olive"), oat: g("--oat"), soft: g("--soft") };
+}
+const LIGHT = { bg: "#FFFFFF", ink: "#141413", text: "#3D3D3A", muted: "#87867F", line: "#D1CFC5", clay: "#D97757", sky: "#6A8CAF", olive: "#788C5D", oat: "#E3DACC", soft: "#F0EEE6" };
+
+function niceTicks(lo, hi, n) {
+  const span = hi - lo; if (span <= 0) return [lo];
+  const raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) || 10 * mag;
+  const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+function frame(ctx, w, h, P, box, xr, yr, xt, yt, xlab, ylab, yfmt) {
+  const { l, r, t, b } = box;
+  const X = x => l + (x - xr[0]) / (xr[1] - xr[0]) * (w - l - r);
+  const Y = y => h - b - (y - yr[0]) / (yr[1] - yr[0]) * (h - t - b);
+  ctx.fillStyle = P.bg; ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = P.line; ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
+  ctx.beginPath();
+  yt.forEach(v => { const y = Math.round(Y(v)) + 0.5; ctx.moveTo(l, y); ctx.lineTo(w - r, y); });
+  ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.strokeStyle = P.muted; ctx.beginPath(); ctx.moveTo(l, t); ctx.lineTo(l, h - b); ctx.lineTo(w - r, h - b); ctx.stroke();
+  ctx.fillStyle = P.muted; ctx.font = "11px ui-monospace, Menlo, Consolas, monospace";
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  xt.forEach(v => ctx.fillText(+v.toFixed(3) + "", X(v), h - b + 5));
+  ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  yt.forEach(v => ctx.fillText(yfmt ? yfmt(v) : (+v.toFixed(3) + ""), l - 6, Y(v)));
+  ctx.textAlign = "right"; ctx.textBaseline = "bottom"; ctx.fillStyle = P.text;
+  ctx.fillText(xlab, w - r, h - b - 4);
+  ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText(ylab, l + 6, t);
+  return { X, Y };
+}
+function drawWave(ctx, w, h, P) {
+  const { E, V0, L } = sim;
+  const W = Math.max(4, L);
+  const xr = [-W, L + W];
+  const lo = Math.min(0, V0, E), hi = Math.max(0, V0, E), span = (hi - lo) || 1;
+  const yr = [lo - 0.12 * span, hi + 0.6 * span];
+  const box = { l: 44, r: 12, t: 12, b: 24 };
+  const { X, Y } = frame(ctx, w, h, P, box, xr, yr, niceTicks(xr[0], xr[1], 7), niceTicks(yr[0], yr[1], 4), "x", "energía");
+  // barrera
+  ctx.fillStyle = P.oat; ctx.globalAlpha = 0.85;
+  ctx.fillRect(X(0), Math.min(Y(V0), Y(0)), X(L) - X(0), Math.abs(Y(V0) - Y(0)));
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = P.clay; ctx.lineWidth = 2; ctx.beginPath();
+  ctx.moveTo(X(xr[0]), Y(0)); ctx.lineTo(X(0), Y(0)); ctx.lineTo(X(0), Y(V0)); ctx.lineTo(X(L), Y(V0)); ctx.lineTo(X(L), Y(0)); ctx.lineTo(X(xr[1]), Y(0)); ctx.stroke();
+  // E
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = P.muted; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(X(xr[0]), Y(E)); ctx.lineTo(X(xr[1]), Y(E)); ctx.stroke(); ctx.setLineDash([]);
+  // ψ
+  const c = coeffs(E, V0, L), N = 700, xs = [], ps = [];
+  let m2 = 0, m1 = 0;
+  const ph = expi(Cx(-sim.phase));
+  for (let i = 0; i <= N; i++) {
+    const x = xr[0] + (xr[1] - xr[0]) * i / N, p = mul(psiAt(x, c, L), ph);
+    xs.push(x); ps.push(p); m2 = Math.max(m2, ab2(p)); m1 = Math.max(m1, Math.abs(p.re));
+  }
+  const room = 0.5 * span;
+  if (sim.psi2) {
+    const s = room / (m2 || 1);
+    ctx.strokeStyle = P.sky; ctx.lineWidth = 2; ctx.beginPath();
+    xs.forEach((x, i) => { const y = Y(E + s * ab2(ps[i])); i ? ctx.lineTo(X(x), y) : ctx.moveTo(X(x), y); }); ctx.stroke();
+  }
+  if (sim.re) {
+    const s = 0.45 * room / (m1 || 1);
+    ctx.strokeStyle = P.olive; ctx.lineWidth = 1.6; ctx.beginPath();
+    xs.forEach((x, i) => { const y = Y(E + s * ps[i].re); i ? ctx.lineTo(X(x), y) : ctx.moveTo(X(x), y); }); ctx.stroke();
+  }
+  ctx.fillStyle = P.clay; ctx.font = "11px ui-monospace, Menlo, Consolas, monospace"; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+  ctx.fillText("V₀ = " + fmt(V0, 3), X(L) + 6, Y(V0) - 2);
+  ctx.fillStyle = P.muted; ctx.textAlign = "right"; ctx.fillText("E = " + fmt(E, 3), X(xr[1]) - 4, Y(E) - 3);
+  ctx.textAlign = "right"; ctx.textBaseline = "top"; ctx.fillText("ψ en escala arbitraria", w - box.r - 2, box.t);
+}
+function curveData() {
+  const { mode, xmin, xmax } = sim, N = 900, out = [];
+  const a = Math.min(xmin, xmax), b = Math.max(xmin, xmax);
+  for (let i = 0; i <= N; i++) {
+    let x = a + (b - a) * i / N;
+    let T;
+    if (mode === "E") { if (x <= 0) x = 1e-4; T = Tof(x, sim.V0, sim.L); }
+    else if (mode === "L") { if (x < 0) x = 0; T = Tof(sim.E, sim.V0, x); }
+    else T = Tof(sim.E, x, sim.L);
+    out.push([x, T]);
+  }
+  return { a, b, out };
+}
+function drawCurve(ctx, w, h, P) {
+  const { a, b, out } = curveData();
+  const cur = sim.mode === "E" ? sim.E : sim.mode === "L" ? sim.L : sim.V0;
+  const Tcur = Tof(sim.E, sim.V0, sim.L);
+  const box = { l: 52, r: 12, t: 12, b: 24 };
+  const xlab = sim.mode === "V0" ? "V₀" : sim.mode;
+  let yr, yt, f = v => v, yfmt;
+  if (sim.log) {
+    const mn = Math.max(1e-30, Math.min(...out.map(p => p[1]).filter(v => v > 0), Tcur || 1));
+    const lo = Math.max(-30, Math.floor(Math.log10(mn)));
+    yr = [lo === 0 ? -1 : lo, 0]; f = v => Math.log10(Math.max(v, 1e-300));
+    const stepD = Math.max(1, Math.ceil(-yr[0] / 6));
+    yt = []; for (let d = 0; d >= yr[0]; d -= stepD) yt.push(d);
+    yfmt = v => "1e" + v;
+  } else { yr = [0, 1.04]; yt = [0, 0.25, 0.5, 0.75, 1]; }
+  const { X, Y } = frame(ctx, w, h, P, box, [a, b], yr, niceTicks(a, b, 7), yt, xlab, sim.log ? "log₁₀ T" : "T, R", yfmt);
+  const clampY = v => Math.max(yr[0], Math.min(yr[1], v));
+  ctx.save(); ctx.beginPath(); ctx.rect(box.l, box.t, w - box.l - box.r, h - box.t - box.b); ctx.clip();
+  // línea E = V0 o V0 = E
+  if (sim.mode === "E" && sim.V0 > a && sim.V0 < b) { ctx.setLineDash([3, 4]); ctx.strokeStyle = P.muted; ctx.beginPath(); ctx.moveTo(X(sim.V0), Y(yr[0])); ctx.lineTo(X(sim.V0), Y(yr[1])); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = P.muted; ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.font = "11px ui-monospace, Menlo, Consolas, monospace"; ctx.fillText("E = V₀", X(sim.V0) + 4, box.t + 16); }
+  if (sim.mode === "V0" && sim.E > a && sim.E < b) { ctx.setLineDash([3, 4]); ctx.strokeStyle = P.muted; ctx.beginPath(); ctx.moveTo(X(sim.E), Y(yr[0])); ctx.lineTo(X(sim.E), Y(yr[1])); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = P.muted; ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.font = "11px ui-monospace, Menlo, Consolas, monospace"; ctx.fillText("V₀ = E", X(sim.E) + 4, box.t + 16); }
+  // R
+  ctx.setLineDash([6, 4]); ctx.strokeStyle = P.sky; ctx.lineWidth = 1.6; ctx.beginPath();
+  out.forEach(([x, T], i) => { const y = Y(clampY(f(1 - T))); i ? ctx.lineTo(X(x), y) : ctx.moveTo(X(x), y); }); ctx.stroke(); ctx.setLineDash([]);
+  // T
+  ctx.strokeStyle = P.clay; ctx.lineWidth = 2.2; ctx.beginPath();
+  out.forEach(([x, T], i) => { const y = Y(clampY(f(T))); i ? ctx.lineTo(X(x), y) : ctx.moveTo(X(x), y); }); ctx.stroke();
+  ctx.restore();
+  if (cur >= a && cur <= b) {
+    const px = X(cur), py = Y(clampY(f(Tcur)));
+    ctx.strokeStyle = P.ink; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.moveTo(px, Y(yr[0])); ctx.lineTo(px, py); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = P.ink; ctx.beginPath(); ctx.arc(px, py, 4.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = P.bg; ctx.beginPath(); ctx.arc(px, py, 2, 0, 2 * Math.PI); ctx.fill();
+  }
+}
+function sizeCanvas(cv) {
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  const W = Math.max(1, Math.round(r.width * dpr)), H = Math.max(1, Math.round(r.height * dpr));
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w: r.width, h: r.height };
+}
+const cvW = $("#cv-wave"), cvC = $("#cv-curve");
+let raf = 0;
+function redraw() {
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(() => {
+    const P = palette();
+    let s = sizeCanvas(cvW); drawWave(s.ctx, s.w, s.h, P);
+    s = sizeCanvas(cvC); drawCurve(s.ctx, s.w, s.h, P);
+    readout();
+  });
+}
+
+/* ── lecturas ─────────────────────────────────────── */
+function regime() {
+  const { E, V0 } = sim;
+  if (V0 < 0) return { txt: "Pozo (V₀ < 0)", cls: "" };
+  if (Math.abs(E - V0) < 1e-9) return { txt: "E = V₀", cls: "" };
+  return E < V0 ? { txt: "Túnel (E < V₀)", cls: "tunnel" } : { txt: "Sobre la barrera (E > V₀)", cls: "" };
+}
+function readout() {
+  const { E, V0, L } = sim, T = Tof(E, V0, L), R = 1 - T, k = Math.sqrt(2 * E), d = E - V0;
+  const inside = d < 0 ? ["κ", Math.sqrt(-2 * d)] : ["q", Math.sqrt(2 * Math.max(d, 0))];
+  const rg = regime();
+  $("#readout").innerHTML =
+    `<div class="ro big t"><div class="k">T</div><div class="v">${fmtT(T)}</div></div>` +
+    `<div class="ro big r"><div class="k">R</div><div class="v">${fmtT(R)}</div></div>` +
+    `<div class="ro"><div class="k">régimen</div><div class="v"><span class="chip ${rg.cls}">${rg.txt}</span></div></div>` +
+    `<div class="ro"><div class="k">k = √(2E)</div><div class="v">${fmt(k)}</div></div>` +
+    `<div class="ro"><div class="k">${inside[0]} dentro</div><div class="v">${fmt(inside[1])}</div></div>` +
+    `<div class="ro"><div class="k">${inside[0]}L</div><div class="v">${fmt(inside[1] * L)}</div></div>`;
+}
+
+/* ── controles ────────────────────────────────────── */
+const pairs = [["E", "#rE", "#nE"], ["V0", "#rV", "#nV"], ["L", "#rL", "#nL"]];
+function syncControls() {
+  pairs.forEach(([k, r, n]) => { $(r).value = sim[k]; $(n).value = +(+sim[k]).toFixed(4); });
+  $("#mode").value = sim.mode; $("#xmin").value = sim.xmin; $("#xmax").value = sim.xmax; $("#logy").checked = sim.log;
+  $("#curve-title").textContent = "Transmisión como función de " + (sim.mode === "V0" ? "V₀" : sim.mode);
+}
+pairs.forEach(([k, r, n]) => {
+  const lim = el => [+el.min, +el.max];
+  $(r).addEventListener("input", e => { sim[k] = +e.target.value; $(n).value = +sim[k].toFixed(4); redraw(); });
+  $(n).addEventListener("change", e => {
+    const [lo, hi] = lim(e.target); let v = parseFloat(e.target.value);
+    if (!isFinite(v)) v = sim[k];
+    v = Math.min(hi, Math.max(lo, v)); sim[k] = v; e.target.value = v; $(r).value = v; redraw();
+  });
+});
+const defaultRange = { E: [0, 10], L: [0, 5], V0: [-10, 20] };
+$("#mode").addEventListener("change", e => { sim.mode = e.target.value; [sim.xmin, sim.xmax] = defaultRange[sim.mode]; syncControls(); redraw(); });
+$("#xmin").addEventListener("change", e => { const v = parseFloat(e.target.value); if (isFinite(v)) sim.xmin = v; redraw(); });
+$("#xmax").addEventListener("change", e => { const v = parseFloat(e.target.value); if (isFinite(v) && v !== sim.xmin) sim.xmax = v; redraw(); });
+$("#logy").addEventListener("change", e => { sim.log = e.target.checked; redraw(); });
+$("#shPsi2").addEventListener("change", e => { sim.psi2 = e.target.checked; redraw(); });
+$("#shRe").addEventListener("change", e => { sim.re = e.target.checked; redraw(); });
+let animId = 0, lastT = 0;
+$("#anim").addEventListener("click", e => {
+  sim.anim = !sim.anim; e.target.textContent = sim.anim ? "Detener fase" : "Animar fase";
+  if (sim.anim) { lastT = performance.now(); const step = now => { if (!sim.anim) return; sim.phase += sim.E * (now - lastT) / 1000 * 0.6; lastT = now; const P = palette(); const s = sizeCanvas(cvW); drawWave(s.ctx, s.w, s.h, P); animId = requestAnimationFrame(step); }; animId = requestAnimationFrame(step); }
+  else { cancelAnimationFrame(animId); sim.phase = 0; redraw(); }
+});
+function applyPreset(p) { if (!p) return; Object.assign(sim, p); syncControls(); redraw(); }
+
+/* ── capturas y puntos ────────────────────────────── */
+function capture() {
+  const Wd = 1200, hW = 420, hC = 380, band = 84, pad = 0;
+  const cv = document.createElement("canvas"); cv.width = Wd; cv.height = band + hW + hC + 16;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, cv.width, cv.height);
+  const T = Tof(sim.E, sim.V0, sim.L);
+  ctx.fillStyle = "#87867F"; ctx.font = "15px ui-monospace, Menlo, Consolas, monospace"; ctx.textBaseline = "top";
+  ctx.fillText(`CASO ${state.active} · ${(state.nombre || "sin nombre").toUpperCase()} · No. ${state.numero || "—"}`, 24, 16);
+  ctx.fillStyle = "#141413"; ctx.font = "22px Georgia, 'Times New Roman', serif";
+  ctx.fillText(`E = ${fmt(sim.E)}   V₀ = ${fmt(sim.V0)}   L = ${fmt(sim.L)}   →   T = ${fmtT(T)}   R = ${fmtT(1 - T)}`, 24, 42);
+  ctx.save(); ctx.translate(pad, band); drawWave(ctx, Wd, hW, LIGHT); ctx.restore();
+  ctx.save(); ctx.translate(pad, band + hW + 16); drawCurve(ctx, Wd, hC, LIGHT); ctx.restore();
+  const img = cv.toDataURL("image/jpeg", 0.86);
+  const cap = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), c: state.active, img, ar: cv.height / cv.width,
+    caption: `E = ${fmt(sim.E)}, V₀ = ${fmt(sim.V0)}, L = ${fmt(sim.L)}; T = ${fmtT(T)}, R = ${fmtT(1 - T)}. Gráfica de T contra ${sim.mode === "V0" ? "V₀" : sim.mode}${sim.log ? " (escala log)" : ""}.` };
+  caps.push(cap); saveCaps(); renderCase(); renderReport();
+  toast(`Captura agregada al caso ${state.active}.`);
+}
+function addPoint() {
+  const T = Tof(sim.E, sim.V0, sim.L);
+  state.pts[state.active].push({ E: +sim.E.toFixed(4), V0: +sim.V0.toFixed(4), L: +sim.L.toFixed(4), T, R: 1 - T });
+  save(); renderCase(); renderReport(); toast(`Punto registrado en el caso ${state.active}.`);
+}
+$("#btnCap").addEventListener("click", capture);
+$("#btnPt").addEventListener("click", addPoint);
+
+/* ── casos UI ─────────────────────────────────────── */
+function answered(c) { return c.qs.filter((_, i) => (state.ans[`c${c.id}q${i + 1}`] || "").trim().length > 0).length; }
+function renderTabs() {
+  $("#tabs").innerHTML = CASES.map(c => {
+    const a = answered(c), cls = a === 0 ? "" : a === c.qs.length ? "done" : "part";
+    return `<button class="tab" role="tab" id="tab${c.id}" aria-selected="${state.active === c.id}" data-c="${c.id}" type="button">Caso ${c.id} · ${c.short}<span class="dot ${cls}"></span></button>`;
+  }).join("");
+  $("#attachTo").textContent = "caso " + state.active;
+}
+function ptsTable(id, editable) {
+  const rows = state.pts[id] || [];
+  if (!rows.length) return `<p class="empty">Sin puntos registrados.</p>`;
+  return `<div class="tablewrap"><table><thead><tr><th>#</th><th>E</th><th>V₀</th><th>L</th><th>T</th><th>R</th>${editable ? "<th></th>" : ""}</tr></thead><tbody>` +
+    rows.map((p, i) => `<tr><td class="num">${i + 1}</td><td class="num">${p.E}</td><td class="num">${p.V0}</td><td class="num">${p.L}</td><td class="num">${fmtT(p.T)}</td><td class="num">${fmtT(p.R)}</td>${editable ? `<td><button class="small ghost" data-delpt="${id}:${i}" type="button" aria-label="Quitar punto ${i + 1}">Quitar</button></td>` : ""}</tr>`).join("") +
+    `</tbody></table></div>`;
+}
+function presetText(p) { return p ? `E = ${p.E}, V₀ = ${p.V0}, L = ${p.L}; T contra ${p.mode === "V0" ? "V₀" : p.mode} en [${p.xmin}, ${p.xmax}]${p.log ? ", escala log" : ""}` : ""; }
+function renderCase() {
+  renderTabs();
+  const c = CASES.find(x => x.id === state.active), p = c.preset();
+  const mycaps = caps.filter(k => k.c === c.id);
+  let extra = "";
+  if (c.id === 5) {
+    const pe = personal(state.numero);
+    extra = pe ? `<p class="persona">Tu barrera: V₀ = ${pe.V0}, L = ${pe.L}, E₀ = ${pe.E0}</p>` : `<p class="msg err">Escribe tu número de empleado en «Identificación» para generar tu barrera.</p>`;
+  }
+  $("#casePanel").innerHTML = `
+    <div class="case" role="tabpanel" aria-labelledby="tab${c.id}">
+      <div><div class="eyebrow">Caso ${c.id} de ${CASES.length}</div><h3>${c.title}</h3><p class="goal">${c.goal}</p>${extra}</div>
+      <div class="preset"><button type="button" id="loadPreset" ${p ? "" : "disabled"}>Cargar parámetros del caso</button><span class="mono">${presetText(p)}</span></div>
+      <ol class="qs">${c.qs.map((q, i) => { const key = `c${c.id}q${i + 1}`; return `<li><label class="qt" for="a-${key}">${q}</label><textarea id="a-${key}" data-key="${key}" placeholder="Tu respuesta, con procedimiento y valores numéricos"></textarea></li>`; }).join("")}</ol>
+      <div class="sub"><div class="label" style="margin-bottom:6px">Puntos registrados</div>${ptsTable(c.id, true)}</div>
+      <div class="sub"><div class="label" style="margin-bottom:6px">Capturas de este caso (${mycaps.length})</div>${mycaps.length ? `<div class="thumbs">${mycaps.map(k => `<img src="${k.img}" alt="Captura del caso ${c.id}">`).join("")}</div><p class="hint" style="margin-top:6px">Edita los pies de figura o reordénalas en el reporte.</p>` : `<p class="empty">Aún no hay capturas. Usa «Capturar pantalla».</p>`}</div>
+      <div><button type="button" class="ghost" data-goto="reporte">Ir al reporte ↓</button></div>
+    </div>`;
+  $$("#casePanel textarea[data-key]").forEach(t => t.value = state.ans[t.dataset.key] || "");
+  const lp = $("#loadPreset"); if (lp) lp.addEventListener("click", () => applyPreset(c.preset()));
+}
+$("#tabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-c]"); if (!b) return;
+  state.active = +b.dataset.c; save(); renderCase();
+  applyPreset(CASES.find(x => x.id === state.active).preset());
+});
+
+/* ── sincronía de textos ──────────────────────────── */
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.dataset.key) {
+    state.ans[t.dataset.key] = t.value;
+    $$(`textarea[data-key="${t.dataset.key}"]`).forEach(o => { if (o !== t) o.value = t.value; });
+    save(); renderTabs(); renderStatus();
+  } else if (t.dataset.note) { state.notes[t.dataset.note] = t.value; save(); }
+  else if (t.id === "concl") { state.concl = t.value; save(); }
+  else if (t.dataset.capcap) { const k = caps.find(x => x.id === t.dataset.capcap); if (k) { k.caption = t.value; saveCaps(); } }
+});
+document.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.goto) { document.getElementById(b.dataset.goto).scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }
+  if (b.dataset.delpt) { const [c, i] = b.dataset.delpt.split(":").map(Number); const [rm] = state.pts[c].splice(i, 1); save(); renderCase(); renderReport(); toast("Punto quitado.", () => { state.pts[c].splice(i, 0, rm); save(); renderCase(); renderReport(); }); }
+  if (b.dataset.capdel) { const i = caps.findIndex(x => x.id === b.dataset.capdel); if (i < 0) return; const [rm] = caps.splice(i, 1); saveCaps(); renderCase(); renderReport(); toast("Captura quitada.", () => { caps.splice(i, 0, rm); saveCaps(); renderCase(); renderReport(); }); }
+  if (b.dataset.capmove) {
+    const [id, dir] = b.dataset.capmove.split(":"); const k = caps.find(x => x.id === id); if (!k) return;
+    const same = caps.filter(x => x.c === k.c), j = same.indexOf(k), other = same[j + (+dir)]; if (!other) return;
+    const a = caps.indexOf(k), bI = caps.indexOf(other); [caps[a], caps[bI]] = [caps[bI], caps[a]]; saveCaps(); renderReport(); renderCase();
+  }
+  if (b.dataset.capload) { const k = caps.find(x => x.id === b.dataset.capload); if (k) { state.active = k.c; save(); renderCase(); document.getElementById("sim").scrollIntoView({ behavior: "auto" }); } }
+});
+
+/* ── reporte ──────────────────────────────────────── */
+function missing() {
+  const m = [];
+  if (!state.nombre.trim()) m.push("nombre");
+  if (!state.numero.trim()) m.push("número de empleado");
+  const faltan = totalQs - CASES.reduce((a, c) => a + answered(c), 0);
+  if (faltan) m.push(`${faltan} respuesta${faltan > 1 ? "s" : ""}`);
+  CASES.forEach(c => { if (!caps.some(k => k.c === c.id)) m.push(`captura del caso ${c.id}`); });
+  return m;
+}
+function renderStatus() {
+  const done = CASES.reduce((a, c) => a + answered(c), 0);
+  $("#statusList").innerHTML = `<span class="chip">${done}/${totalQs} respuestas</span><span class="chip">${caps.length} capturas</span><span class="chip">${Object.values(state.pts).reduce((a, r) => a + r.length, 0)} puntos</span>`;
+  const m = $("#missingMsg"); if (m) { const ms = missing(); m.className = "msg " + (ms.length ? "" : "ok"); m.textContent = ms.length ? "Pendiente: " + ms.join(", ") + "." : "Reporte completo."; }
+}
+function renderReport() {
+  const pe = personal(state.numero);
+  $("#doc").innerHTML = `
+    <div>
+      <div class="eyebrow">UABC · Facultad de Ciencias · Mecánica Cuántica</div>
+      <h2 style="margin-bottom:6px">Barrera de potencial rectangular</h2>
+      <p class="mono" style="color:var(--text)">${esc(state.nombre || "— nombre —")} · No. de empleado ${esc(state.numero || "—")}${pe ? ` · barrera personal V₀ = ${pe.V0}, L = ${pe.L}, E₀ = ${pe.E0}` : ""}</p>
+    </div>
+    ${CASES.map(c => {
+      const mycaps = caps.filter(k => k.c === c.id);
+      return `<div class="rcase">
+        <h3>Caso ${c.id}. ${c.title}</h3>
+        ${c.qs.map((q, i) => { const key = `c${c.id}q${i + 1}`; return `<div class="rq"><label class="qt" for="r-${key}"><span class="mono" style="color:var(--clay)">P${i + 1}.</span> ${q}</label><textarea id="r-${key}" data-key="${key}"></textarea></div>`; }).join("")}
+        <div><div class="label" style="margin-bottom:6px">Puntos registrados</div>${ptsTable(c.id, true)}</div>
+        <div style="display:grid;gap:10px"><div class="label">Capturas</div>
+          ${mycaps.length ? mycaps.map((k, j) => `<div class="cap"><img src="${k.img}" alt="Captura ${j + 1} del caso ${c.id}">
+            <div class="capctl"><label class="label" for="cap-${k.id}">Figura ${c.id}.${j + 1} · pie de figura</label><textarea id="cap-${k.id}" data-capcap="${k.id}"></textarea>
+            <div class="capbtns"><button class="small" type="button" data-capmove="${k.id}:-1" ${j === 0 ? "disabled" : ""}>Subir</button><button class="small" type="button" data-capmove="${k.id}:1" ${j === mycaps.length - 1 ? "disabled" : ""}>Bajar</button><button class="small ghost" type="button" data-capdel="${k.id}">Quitar</button></div></div></div>`).join("")
+            : `<p class="empty">Sin capturas para este caso.</p>`}
+        </div>
+        <div class="rq"><label class="qt" for="note-${c.id}">Notas o correcciones adicionales del caso ${c.id} (opcional)</label><textarea id="note-${c.id}" data-note="${c.id}" placeholder="Agrega observaciones, cálculos extra o correcciones"></textarea></div>
+      </div>`;
+    }).join("")}
+    <div class="rcase">
+      <h3>Conclusiones</h3>
+      <div class="rq"><label class="qt" for="concl">Resume en un párrafo lo que aprendiste sobre tunelaje, resonancias y conservación de probabilidad.</label><textarea id="concl" style="min-height:120px"></textarea></div>
+    </div>
+    <div class="rcase">
+      <div class="genbar"><button class="primary" id="btnPdf" type="button">Generar PDF</button><span class="msg" id="missingMsg"></span></div>
+      <span class="msg" id="pdfMsg" aria-live="polite"></span>
+    </div>`;
+  $$("#doc textarea[data-key]").forEach(t => t.value = state.ans[t.dataset.key] || "");
+  $$("#doc textarea[data-note]").forEach(t => t.value = state.notes[t.dataset.note] || "");
+  $$("#doc textarea[data-capcap]").forEach(t => { const k = caps.find(x => x.id === t.dataset.capcap); t.value = k ? k.caption : ""; });
+  $("#concl").value = state.concl || "";
+  $("#btnPdf").addEventListener("click", makePdf);
+  renderStatus();
+}
+
+/* ── PDF ──────────────────────────────────────────── */
+const MAP = { "₀": "0", "₁": "1", "₂": "2", "₃": "3", "ₙ": "n", "κ": "kappa", "π": "pi", "ħ": "hbar", "ψ": "psi", "λ": "lambda", "Δ": "Delta", "θ": "theta", "α": "alfa", "β": "beta", "ω": "omega", "Ω": "Omega", "μ": "mu", "≈": "~", "−": "-", "–": "-", "—": "-", "≤": "<=", "≥": ">=", "≲": "<~", "≳": ">~", "√": "sqrt", "→": "->", "⁻": "-", "∞": "inf", "“": '"', "”": '"', "‘": "'", "’": "'", "…": "...", "′": "'", "ⁿ": "^n", "×": "x" };
+function pdfText(s) { return String(s || "").replace(/[^\u0000-ÿ]/g, ch => MAP[ch] !== undefined ? MAP[ch] : "?"); }
+let dlPromise = null;
+function getDownloads() {
+  if (dlPromise) return dlPromise;
+  if (window.claude && typeof window.claude.use === "function") { dlPromise = window.claude.use("downloads").catch(() => null); return dlPromise; }
+  return Promise.resolve(null);
+}
+async function makePdf() {
+  const msg = $("#pdfMsg");
+  if (!state.nombre.trim() || !state.numero.trim()) { msg.className = "msg err"; msg.textContent = "Escribe tu nombre y número de empleado en «Identificación» antes de generar el PDF."; $("#nombre").focus(); return; }
+  if (!window.jspdf) { msg.className = "msg err"; msg.textContent = "No se pudo cargar el generador de PDF. Revisa tu conexión y recarga la página."; return; }
+  msg.className = "msg"; msg.textContent = "Generando PDF…";
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const PW = 210, PH = 297, M = 18, CW = PW - 2 * M;
+  let y = M;
+  const ensure = h => { if (y + h > PH - 16) { doc.addPage(); y = M; } };
+  const para = (txt, size = 10.5, style = "normal", color = [61, 61, 58], indent = 0) => {
+    doc.setFont("helvetica", style); doc.setFontSize(size); doc.setTextColor(...color);
+    const lines = doc.splitTextToSize(pdfText(txt), CW - indent), lh = size * 0.42;
+    lines.forEach(l => { ensure(lh); doc.text(l, M + indent, y + lh * 0.8); y += lh; });
+  };
+  const gap = h => { y += h; };
+  // portada
+  doc.setFillColor(217, 119, 87); doc.rect(M, y, 28, 1.2, "F"); gap(5);
+  para("UABC · FACULTAD DE CIENCIAS · MECÁNICA CUÁNTICA", 8.5, "normal", [135, 134, 127]);
+  gap(2);
+  doc.setFont("times", "normal"); doc.setFontSize(20); doc.setTextColor(20, 20, 19);
+  doc.text(pdfText("Barrera de potencial rectangular"), M, y + 7); gap(10);
+  para("Reporte de actividad: transmisión, reflexión y tunelaje (unidades hbar = m = 1)", 11, "normal", [61, 61, 58]);
+  gap(4);
+  const pe = personal(state.numero);
+  const fecha = new Date().toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" });
+  [["Nombre", state.nombre], ["Número de empleado", state.numero], ["Fecha", fecha], ["Barrera personal", pe ? `V0 = ${pe.V0}, L = ${pe.L}, E0 = ${pe.E0}` : "—"]].forEach(([k, v]) => {
+    ensure(6); doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(135, 134, 127); doc.text(pdfText(k.toUpperCase()), M, y + 4);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(20, 20, 19); doc.text(pdfText(v || "—"), M + 48, y + 4); y += 6.5;
+  });
+  gap(4); doc.setDrawColor(209, 207, 197); doc.line(M, y, PW - M, y); gap(6);
+
+  for (const c of CASES) {
+    ensure(24);
+    doc.setFont("times", "normal"); doc.setFontSize(15); doc.setTextColor(20, 20, 19);
+    doc.text(pdfText(`Caso ${c.id}. ${c.title}`), M, y + 5); gap(8);
+    para(c.goal, 10, "italic", [110, 109, 103]);
+    const p = c.preset(); if (p) para("Parámetros iniciales: " + presetText(p), 9, "normal", [135, 134, 127]);
+    gap(3);
+    c.qs.forEach((q, i) => {
+      ensure(12);
+      para(`P${i + 1}. ${q}`, 10.5, "bold", [20, 20, 19]);
+      gap(1);
+      const a = (state.ans[`c${c.id}q${i + 1}`] || "").trim();
+      para(a || "(sin respuesta)", 10.5, a ? "normal" : "italic", a ? [61, 61, 58] : [176, 74, 63], 4);
+      gap(3.5);
+    });
+    const rows = state.pts[c.id] || [];
+    if (rows.length) {
+      ensure(14); para("Puntos registrados", 10, "bold", [135, 134, 127]); gap(1);
+      const cols = ["#", "E", "V0", "L", "T", "R"], cx = [0, 10, 36, 62, 88, 128];
+      doc.setFont("courier", "bold"); doc.setFontSize(9); doc.setTextColor(135, 134, 127);
+      cols.forEach((h, j) => doc.text(h, M + cx[j], y + 3.5)); y += 5; doc.setDrawColor(209, 207, 197); doc.line(M, y, M + 170, y); y += 1;
+      doc.setFont("courier", "normal"); doc.setTextColor(20, 20, 19);
+      rows.forEach((r, i) => { ensure(5); [String(i + 1), String(r.E), String(r.V0), String(r.L), fmtT(r.T), fmtT(r.R)].forEach((v, j) => doc.text(v, M + cx[j], y + 3.5)); y += 4.6; });
+      gap(3);
+    }
+    const mycaps = caps.filter(k => k.c === c.id);
+    mycaps.forEach((k, j) => {
+      const w = CW, h = w * (k.ar || 0.7);
+      const capLines = doc.splitTextToSize(pdfText(`Figura ${c.id}.${j + 1}. ${k.caption || ""}`), CW);
+      ensure(h + 4 + capLines.length * 4.2);
+      try { doc.addImage(k.img, "JPEG", M, y, w, h); } catch (e) {}
+      doc.setDrawColor(209, 207, 197); doc.rect(M, y, w, h); y += h + 3;
+      doc.setFont("helvetica", "italic"); doc.setFontSize(9.5); doc.setTextColor(61, 61, 58);
+      capLines.forEach(l => { doc.text(l, M, y + 3.4); y += 4.2; });
+      gap(4);
+    });
+    const note = (state.notes[c.id] || "").trim();
+    if (note) { ensure(10); para("Notas adicionales", 10, "bold", [135, 134, 127]); para(note, 10.5, "normal", [61, 61, 58], 4); gap(3); }
+    gap(3); ensure(4); doc.setDrawColor(209, 207, 197); doc.line(M, y, PW - M, y); gap(6);
+  }
+  ensure(16);
+  doc.setFont("times", "normal"); doc.setFontSize(15); doc.setTextColor(20, 20, 19); doc.text("Conclusiones", M, y + 5); gap(8);
+  const cc = (state.concl || "").trim();
+  para(cc || "(sin conclusiones)", 10.5, cc ? "normal" : "italic", cc ? [61, 61, 58] : [176, 74, 63]);
+
+  const n = doc.getNumberOfPages();
+  for (let i = 1; i <= n; i++) {
+    doc.setPage(i); doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(135, 134, 127);
+    doc.text(pdfText(`${state.nombre} · No. ${state.numero} · Barrera de potencial`), M, PH - 8);
+    doc.text(`${i} / ${n}`, PW - M, PH - 8, { align: "right" });
+  }
+  const base = pdfText(state.nombre.split(",")[0] || state.nombre).trim().replace(/[^A-Za-z0-9À-ÿ]+/g, "_").slice(0, 40);
+  const filename = `Reporte_Barrera_${state.numero.replace(/\D/g, "") || "0"}_${base || "alumno"}.pdf`;
+  const blob = doc.output("blob");
+  const dl = await getDownloads();
+  if (dl) {
+    try { await dl.save({ filename, data: blob }); msg.className = "msg ok"; msg.textContent = `Listo: ${filename}. Puedes seguir corrigiendo y generar una nueva versión.`; }
+    catch (e) {
+      msg.className = "msg err";
+      msg.textContent = e && e.code === "declined" ? "Cancelaste la descarga. Pulsa «Generar PDF» cuando quieras intentarlo de nuevo." : e && e.code === "rate_limited" ? "Ya hay una descarga pendiente de confirmar. Espera un momento y vuelve a intentarlo." : "Esta vista no permite descargar archivos. Abre la página en el navegador e inténtalo de nuevo.";
+    }
+  } else {
+    try { doc.save(filename); msg.className = "msg ok"; msg.textContent = `Listo: ${filename}.`; }
+    catch (e) { msg.className = "msg err"; msg.textContent = "No se pudo descargar el PDF en esta vista. Abre la página en el navegador e inténtalo de nuevo."; }
+  }
+}
+
+/* ── toast ────────────────────────────────────────── */
+let toastT = null;
+function toast(text, undo) {
+  let el = $(".toast"); if (el) el.remove();
+  el = document.createElement("div"); el.className = "toast"; el.setAttribute("role", "status");
+  el.innerHTML = `<span>${esc(text)}</span>`;
+  if (undo) { const b = document.createElement("button"); b.className = "small"; b.type = "button"; b.textContent = "Deshacer"; b.onclick = () => { undo(); el.remove(); }; el.appendChild(b); }
+  document.body.appendChild(el); clearTimeout(toastT); toastT = setTimeout(() => el.remove(), undo ? 7000 : 3200);
+}
+
+/* ── identificación ───────────────────────────────── */
+function renderPersona() {
+  const p = personal(state.numero);
+  $("#persona").textContent = p ? `V₀ = ${p.V0}   L = ${p.L}   E₀ = ${p.E0}` : "Escribe tu número para generarla";
+}
+$("#nombre").addEventListener("input", e => { state.nombre = e.target.value; save(); renderStatus(); });
+$("#numero").addEventListener("input", e => { state.numero = e.target.value; save(); renderPersona(); renderStatus(); if (state.active === 5) renderCase(); });
+$("#numero").addEventListener("change", () => renderReport());
+$("#nombre").addEventListener("change", () => renderReport());
+
+/* ── arranque ─────────────────────────────────────── */
+load();
+$("#nombre").value = state.nombre; $("#numero").value = state.numero;
+renderPersona();
+const first = CASES.find(c => c.id === state.active).preset() || CASES[0].preset();
+Object.assign(sim, first);
+syncControls(); renderCase(); renderReport(); redraw();
+new ResizeObserver(() => redraw()).observe(cvW);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+getDownloads();
+})();
+</script>
+
+</body>
+</html>
